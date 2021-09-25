@@ -20,13 +20,9 @@ dns_raw = File.readlines("zone")
 
 # Step 1: Filter  the comments (lines starting with #), and empty lines from the zone file.
 def preprocess(dns_row_data)
-
-  #puts dns_row_data.class
-
   dns_records_data = dns_row_data.select { |line| line[0] != "#" && line[0] != "\n"}
-  #puts dns_records_data
-  #puts dns_records_data.class
 
+  #Iterate over each line, split it into an array with 3 columns using the .split method,
   dns_records_data.each_with_index{ |line, index|
     line_split= line.split(", ")
     line_split[2] = line_split[2].strip # to remove newline
@@ -35,39 +31,33 @@ def preprocess(dns_row_data)
   dns_records_data
 end
 
+# Step 2: Build a hash which represents dns_records.
 def parse_dns(dns_records_data)
 
   dns_hash = {}
-  dns_records_data.each { |line|
-    dns_hash = {line[1].to_sym => {type: line[0], target: line[2]}}
+  dns_records_data.each{ |line|
+    dns_hash[line[1]] = {type: line[0], target: line[2]}
   }
   dns_hash
-  puts dns_hash
 end
 
-# Step 2: Iterate over each line, split it into an array with 3 columns using the .split method,
-#         and build a hash which represents dns_records.
+# Step 3 : Resolve DNS value usingrecursion
+def resolve(dns_records_hash, lookup_chain_data, domain_data)
 
-
-
-
-def resolve(dns_records_data, lookup_chain_data, domain_data)
-  #dns_hash = {}
-  #dns_records_data.each { |line|
-  #  (dns_hash[line[0]] ||= []) << [line[1], line[2]]
-  #}
-  #puts dns_hash
-
-  record = dns_records[domain]
+  record = dns_records_hash[domain_data]
+  #puts lookup_chain_data
+  #puts record
   if (!record)
-    lookup_chain << "Error: Record not found for "+domain
-    return
+    lookup_chain_data << "Error: Record not found for "+ domain_data
+    return lookup_chain_data
   elsif record[:type] == "CNAME"
-    # ...
+    lookup_chain_data.push(record[:target])
+    resolve(dns_records_hash, lookup_chain_data, record[:target])
   elsif record[:type] == "A"
-    #...
+    lookup_chain_data.push(record[:target])
+    return lookup_chain_data
   else
-    lookup_chain << "Invalid record type for "+domain
+    lookup_chain_data << "Invalid record type for "+ domain_data
     return
   end
 end
@@ -76,9 +66,12 @@ end
 # Remember to implement them above this line since in Ruby
 # you can invoke a function only after it is defined.
 dns_records = preprocess(dns_raw)
-puts dns_records
+#puts dns_records
 
-dns_records = parse_dns(dns_records)
-#lookup_chain = [domain]
-#lookup_chain = resolve(dns_records, lookup_chain, domain)
-#puts lookup_chain.join(" => ")
+dns_records_hash = parse_dns(dns_records)
+#puts dns_records_hash
+
+lookup_chain = [domain]
+lookup_chain = resolve(dns_records_hash, lookup_chain, domain)
+#puts lookup_chain
+puts lookup_chain.join(" => ")
