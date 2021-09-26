@@ -19,8 +19,9 @@ domain = get_command_line_argument
 dns_raw = File.readlines("zone")
 
 # Step 1: Filter  the comments (lines starting with #), and empty lines from the zone file.
-def preprocess(dns_row_data)
-  dns_records_data = dns_row_data.select { |line| line[0] != "#" && line[0] != "\n"}
+# Step 2: Build a hash which represents dns_records.
+def parse_dns(dns_raw)
+  dns_records_data = dns_raw.select { |line| line[0] != "#" && line[0] != "\n"}
 
   #Iterate over each line, split it into an array with 3 columns using the .split method,
   dns_records_data.each_with_index{ |line, index|
@@ -28,11 +29,6 @@ def preprocess(dns_row_data)
     line_split[2] = line_split[2].strip # to remove newline
     dns_records_data[index] = line_split
   }
-  dns_records_data
-end
-
-# Step 2: Build a hash which represents dns_records.
-def parse_dns(dns_records_data)
 
   dns_hash = {}
   dns_records_data.each{ |line|
@@ -45,11 +41,8 @@ end
 def resolve(dns_records_hash, lookup_chain_data, domain_data)
 
   record = dns_records_hash[domain_data]
-  #puts lookup_chain_data
-  #puts record
   if (!record)
     lookup_chain_data << "Error: Record not found for "+ domain_data
-    return lookup_chain_data
   elsif record[:type] == "CNAME"
     lookup_chain_data.push(record[:target])
     resolve(dns_records_hash, lookup_chain_data, record[:target])
@@ -65,10 +58,8 @@ end
 # To complete the assignment, implement `parse_dns` and `resolve`.
 # Remember to implement them above this line since in Ruby
 # you can invoke a function only after it is defined.
-dns_records = preprocess(dns_raw)
-#puts dns_records
 
-dns_records_hash = parse_dns(dns_records)
+dns_records_hash = parse_dns(dns_raw)
 #puts dns_records_hash
 
 lookup_chain = [domain]
